@@ -136,7 +136,7 @@ custom_zones: dict[str, pt.HydrologicZone] = {
     "surface": pt.SurfaceZone(fc=250.0, thr=25.0),
     # A faster shallow recession and a tighter percolation limit send water to
     # the deep reservoir a little more readily.
-    "shallow": pt.GroundZone(k=2.0e-2, perc=0.5),
+    "shallow": pt.SubsurfaceZone(k=2.0e-2, perc=0.5),
     # The deep reservoir is left at its defaults.
 }
 

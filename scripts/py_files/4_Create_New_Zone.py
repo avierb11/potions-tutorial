@@ -6,7 +6,7 @@
 # `potions` at all: a groundwater reservoir that is **pumped**, i.e. it loses a
 # fixed amount of water each day to represent water extraction for supply.
 #
-# The new zone, `PumpedGroundZoneB`, behaves like the built-in `GroundZoneB`
+# The new zone, `PumpedSubsurfaceZoneB`, behaves like the built-in `SubsurfaceZoneB`
 # (a linear reservoir that discharges to the stream proportionally to its
 # storage) but with an extra outflow that removes up to `pump_rate` of storage
 # every day. We drop it into the same five-zone, two-column structure from the
@@ -88,7 +88,7 @@ print(f"Number of measured streamflow values: {len(meas_streamflow)}")
 # %% [markdown]
 # ## 3. What the new zone is designed to do
 #
-# The built-in `GroundZoneB` is a *linear reservoir*: its lateral (stream)
+# The built-in `SubsurfaceZoneB` is a *linear reservoir*: its lateral (stream)
 # outflow is
 #
 # $$\text{outflow} = k \, s^{\alpha},$$
@@ -145,8 +145,8 @@ pump_rate: float = 0.30  # maximum amount of water pumped each day (mm/d)
 
 
 # %%
-class PumpedGroundZoneB(pt.HydrologicZone):
-    """A linear groundwater reservoir (a `GroundZoneB`) that also loses a fixed
+class PumpedSubsurfaceZoneB(pt.HydrologicZone):
+    """A linear groundwater reservoir (a `SubsurfaceZoneB`) that also loses a fixed
     amount of water each day to represent pumping.
 
     The lateral outflow is ``k * s**alpha``, and the pump removes up to
@@ -156,7 +156,7 @@ class PumpedGroundZoneB(pt.HydrologicZone):
 
     def __new__(
         cls, name: str = "pumped_ground", **kwargs: float
-    ) -> "PumpedGroundZoneB":
+    ) -> "PumpedSubsurfaceZoneB":
         # The Rust (PyO3) __new__ accepts only the positional `name`; strip our
         # keyword parameters so they do not get forwarded to it.
         return super().__new__(cls, name)
@@ -248,14 +248,14 @@ class PumpedGroundZoneB(pt.HydrologicZone):
         return 10.0
 
     @classmethod
-    def default(cls) -> "PumpedGroundZoneB":
+    def default(cls) -> "PumpedSubsurfaceZoneB":
         """A placeholder instance with gentle defaults (no pumping)."""
         return cls(k=0.01, alpha=1.0, pump_rate=0.0, name="ground")
 
 
 # A quick, unit-style check of the new zone before we plug it into a model.
 _test_forcing: HydroForcing = HydroForcing(precip=0.0, temp=10.0, pet=0.0, q_in=2.0)
-_probe_zone: PumpedGroundZoneB = PumpedGroundZoneB(
+_probe_zone: PumpedSubsurfaceZoneB = PumpedSubsurfaceZoneB(
     k=k_ground, alpha=alpha_ground, pump_rate=pump_rate
 )
 print("probe zone name:", _probe_zone.name)
@@ -269,7 +269,7 @@ print("one-day step from s=5.0 -> ", _probe_zone.step(5.0, _test_forcing, 1.0))
 # ## 5. Build the model with the pumped groundwater zone
 #
 # `PumpedTwinColumnModel` is just the structure from `3_Create_Model_Structure.py`,
-# with the built-in `GroundZoneB` replaced by our new `PumpedGroundZoneB`. The
+# with the built-in `SubsurfaceZoneB` replaced by our new `PumpedSubsurfaceZoneB`. The
 # placeholder zone inside this list matters for two reasons: it reserves the
 # name `ground`, and the model reads its `param_list()`, `parameter_names()` and
 # `default_init_state()` to know how many parameters each box holds and how to
@@ -284,12 +284,12 @@ print("one-day step from s=5.0 -> ", _probe_zone.step(5.0, _test_forcing, 1.0))
 # %%
 class PumpedTwinColumnModel(pt.Model):
     """The five-zone hillslope/riparian model, but with a *pumped* groundwater
-    reservoir (our custom `PumpedGroundZoneB`) at the bottom."""
+    reservoir (our custom `PumpedSubsurfaceZoneB`) at the bottom."""
 
     structure: list[list[pt.HydrologicZone]] = [
         [pt.SnowZone(name="snow_hs"), pt.SnowZone(name="snow_rp")],
         [pt.SurfaceZone(name="surface_hs"), pt.SurfaceZone(name="surface_rp")],
-        [PumpedGroundZoneB(name="ground")],  # placeholder class + default params
+        [PumpedSubsurfaceZoneB(name="ground")],  # placeholder class + default params
     ]
 
 
@@ -300,7 +300,7 @@ scales: list[float] = [hillslope_scale, riparian_scale]
 
 # The tuned groundwater zone we actually want to run (with real pumping). This
 # is the object the model will use for the box named "ground".
-pumped_ground: PumpedGroundZoneB = PumpedGroundZoneB(
+pumped_ground: PumpedSubsurfaceZoneB = PumpedSubsurfaceZoneB(
     k=k_ground, alpha=alpha_ground, pump_rate=pump_rate, name="ground"
 )
 

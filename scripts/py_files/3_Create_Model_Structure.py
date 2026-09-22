@@ -140,7 +140,7 @@ class TwinColumnModel(pt.Model):
     structure: list[list[pt.HydrologicZone]] = [
         [pt.SnowZone(name="snow_hs"), pt.SnowZone(name="snow_rp")],
         [pt.SurfaceZone(name="surface_hs"), pt.SurfaceZone(name="surface_rp")],
-        [pt.GroundZoneB(name="ground")],
+        [pt.SubsurfaceZoneB(name="ground")],
     ]
 
 

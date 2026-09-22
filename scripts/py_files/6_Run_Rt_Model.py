@@ -112,7 +112,7 @@ meas_river_conc: DataFrame = measured_df["doc_mol_l"].to_frame("DOC")
 custom_zones: dict[str, pt.HydrologicZone] = {
     "snow": pt.SnowZone(tt=0.5, fmax=2.0),
     "surface": pt.SurfaceZone(fc=250.0, thr=25.0),
-    "shallow": pt.GroundZone(k=2.0e-2, perc=0.5),
+    "shallow": pt.SubsurfaceZone(k=2.0e-2, perc=0.5),
     # "deep" is left at its defaults.
 }
 

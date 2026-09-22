@@ -63,8 +63,12 @@ measured_df: DataFrame = pd.read_csv(measured_path, index_col=0, parse_dates=Tru
 meas_streamflow: Series = measured_df["q_mmd"]
 meas_river_conc: DataFrame = measured_df["doc_mol_l"].to_frame("DOC")
 
-print(f"Forcing spans {forcing_df.index[0].date()} to {forcing_df.index[-1].date()} ({len(forcing_df)} days)")
-print(f"Meas. data  spans {measured_df.index[0].date()} to {measured_df.index[-1].date()} ({len(measured_df)} days)")
+print(
+    f"Forcing spans {forcing_df.index[0].date()} to {forcing_df.index[-1].date()} ({len(forcing_df)} days)"
+)
+print(
+    f"Meas. data  spans {measured_df.index[0].date()} to {measured_df.index[-1].date()} ({len(measured_df)} days)"
+)
 
 # %% [markdown]
 # ## 2. Set up the hydrologic model
@@ -84,7 +88,7 @@ forcing: pt.ForcingData = pt.ForcingData(
 custom_zones: dict[str, pt.HydrologicZone] = {
     "snow": pt.SnowZone(tt=0.5, fmax=2.0),
     "surface": pt.SurfaceZone(fc=250.0, thr=25.0),
-    "shallow": pt.GroundZone(k=2.0e-2, perc=0.5),
+    "shallow": pt.SubsurfaceZone(k=2.0e-2, perc=0.5),
 }
 
 hydro_model: pt.HbvModel = pt.HbvModel(zones=custom_zones)
@@ -187,8 +191,8 @@ print("   SOC(s) stoichiometry (unchanged):", soc_species.stoichiometry)
 # (a) The new primary species: bicarbonate, the main dissolved inorganic carbon.
 hco3_species: pt.PrimaryAqueousSpecies = pt.PrimaryAqueousSpecies(
     name="HCO3-",
-    molar_mass=61.0,    # g/mol
-    charge=-1.0,        # unit negative ion
+    molar_mass=61.0,  # g/mol
+    charge=-1.0,  # unit negative ion
     dh_size_param=4.0,  # transport size parameter
 )
 
@@ -198,7 +202,7 @@ modified_soc: pt.MineralSpecies = pt.MineralSpecies(
     name="SOC(s)",
     molar_mass=soc_species.molar_mass,
     stoichiometry={"DOC": 0.5, "HCO3-": 0.5, "SOC(s)": -1.0},
-    eq_consts=soc_species.eq_consts,   # keep the solid's existing equilibrium constants
+    eq_consts=soc_species.eq_consts,  # keep the solid's existing equilibrium constants
     molar_volume=soc_species.molar_volume,
 )
 
@@ -207,7 +211,7 @@ modified_soc: pt.MineralSpecies = pt.MineralSpecies(
 modified_network: pt.ReactionNetwork = pt.ReactionNetwork(
     primary_aqueous=[*primary, hco3_species],
     mineral=[modified_soc],
-    mineral_kinetics=mineral_kinetics,      # unchanged reaction rates
+    mineral_kinetics=mineral_kinetics,  # unchanged reaction rates
     secondary=secondary,
     exchange_species=exchange,
 )
@@ -255,17 +259,24 @@ rt_zones: dict[str, pt.RtZone] = {
     ),
     "surface": pt.RtZone(
         modified_network,
-        pt.RtParameters(dimensions=zone_dimensions, mineral_params=mineral_params_from_ssa(ssa=1.0)),
+        pt.RtParameters(
+            dimensions=zone_dimensions, mineral_params=mineral_params_from_ssa(ssa=1.0)
+        ),
         name="surface",
     ),
     "shallow": pt.RtZone(
         modified_network,
-        pt.RtParameters(dimensions=zone_dimensions, mineral_params=mineral_params_from_ssa(ssa=0.1)),
+        pt.RtParameters(
+            dimensions=zone_dimensions, mineral_params=mineral_params_from_ssa(ssa=0.1)
+        ),
         name="shallow",
     ),
     "deep": pt.RtZone(
         modified_network,
-        pt.RtParameters(dimensions=zone_dimensions, mineral_params=mineral_params_from_ssa(ssa=1.0e-2)),
+        pt.RtParameters(
+            dimensions=zone_dimensions,
+            mineral_params=mineral_params_from_ssa(ssa=1.0e-2),
+        ),
         name="deep",
     ),
 }
@@ -279,9 +290,15 @@ precip_conc: np.ndarray = np.full(
 )
 
 init_conc: dict[str, pt.ChemicalState] = {
-    "surface": pt.ChemicalState(mineral={"SOC(s)": 1.0}, primary={"DOC": 1e-3, "HCO3-": 1e-3}),
-    "shallow": pt.ChemicalState(mineral={"SOC(s)": 0.1}, primary={"DOC": 1e-3, "HCO3-": 1e-3}),
-    "deep": pt.ChemicalState(mineral={"SOC(s)": 0.01}, primary={"DOC": 1e-3, "HCO3-": 1e-3}),
+    "surface": pt.ChemicalState(
+        mineral={"SOC(s)": 1.0}, primary={"DOC": 1e-3, "HCO3-": 1e-3}
+    ),
+    "shallow": pt.ChemicalState(
+        mineral={"SOC(s)": 0.1}, primary={"DOC": 1e-3, "HCO3-": 1e-3}
+    ),
+    "deep": pt.ChemicalState(
+        mineral={"SOC(s)": 0.01}, primary={"DOC": 1e-3, "HCO3-": 1e-3}
+    ),
 }
 
 # %% [markdown]
@@ -311,8 +328,10 @@ hydro_df: DataFrame = rt_results.hydro.simulation
 
 print("Simulation complete.")
 print(f"  Reactive transport output shape: {rt_df.shape}")
-print(f"  (each zone now tracks {modified_network.num_species} species: "
-      f"{', '.join(modified_network.species_names)})")
+print(
+    f"  (each zone now tracks {modified_network.num_species} species: "
+    f"{', '.join(modified_network.species_names)})"
+)
 # %% [markdown]
 # ## 8. View and plot the results
 #
@@ -335,7 +354,9 @@ print(rt_df[river_columns].tail())
 print()
 print("Stoichiometric check - DOC_riv / HCO3-_riv should be ~1 (the 0.5/0.5 split):")
 ratio: pd.Series = rt_df["DOC_riv"] / rt_df["HCO3-_riv"]
-print(f"   mean ratio = {ratio.mean():.3f}, min = {ratio.min():.3f}, max = {ratio.max():.3f}")
+print(
+    f"   mean ratio = {ratio.mean():.3f}, min = {ratio.min():.3f}, max = {ratio.max():.3f}"
+)
 
 # %%
 plt.rcParams["figure.dpi"] = 200
@@ -354,7 +375,13 @@ fig: Figure = plt.figure(figsize=(10, 4))
 ax: Axes = fig.gca()
 
 ax.plot(rt_df.index, rt_df["DOC_riv"], color="seagreen", label="DOC (organic carbon)")
-ax.plot(rt_df.index, rt_df["HCO3-_riv"], color="teal", linestyle="--", label="HCO3- (inorganic carbon)")
+ax.plot(
+    rt_df.index,
+    rt_df["HCO3-_riv"],
+    color="teal",
+    linestyle="--",
+    label="HCO3- (inorganic carbon)",
+)
 ax.set_yscale("log")
 ax.set_xlim(obs_start, obs_end)
 ax.set_ylabel("River concentration (mol/L, log scale)")
@@ -382,7 +409,13 @@ fig3: Figure = plt.figure(figsize=(10, 4))
 ax3: Axes = fig3.gca()
 
 ax3.plot(rt_df.index, ratio, color="indianred", label="DOC / HCO3- ratio")
-ax3.axhline(1.0, color="black", linestyle=":", linewidth=1, label="1.0 (the 0.5/0.5 stoichiometry)")
+ax3.axhline(
+    1.0,
+    color="black",
+    linestyle=":",
+    linewidth=1,
+    label="1.0 (the 0.5/0.5 stoichiometry)",
+)
 ax3.set_xlim(obs_start, obs_end)
 ax3.set_ylabel("DOC / HCO3- ratio (unitless)")
 ax3.set_title("Ratio of organic to inorganic outlet carbon (should sit near 1)")

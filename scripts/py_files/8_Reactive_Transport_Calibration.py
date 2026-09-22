@@ -230,8 +230,8 @@ def build_model(
     custom_zones: dict[str, pt.HydrologicZone] = {
         "snow": pt.SnowZone(tt=snow_tt, fmax=snow_fmax),
         "surface": pt.SurfaceZone(fc=surf_fc, thr=surf_thr),
-        "shallow": pt.GroundZone(k=shallow_k, perc=0.5),
-        "deep": pt.GroundZone(k=deep_k, alpha=1.0),
+        "shallow": pt.SubsurfaceZone(k=shallow_k, perc=0.5),
+        "deep": pt.SubsurfaceZone(k=deep_k, alpha=1.0),
     }
 
     # Map the vector onto the per-zone chemical parameters.
